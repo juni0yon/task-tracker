@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .hidden {
+            display: none;
+        }
+        #summary {
+            margin-top: 20px;
+        }
+        #admin-summary {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task Tracker</h1>
+    <div id="login">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Enter your name" />
+        <button onclick="login()">Log In</button>
+    </div>
+
+    <div id="tasks" class="hidden">
+        <h2>Welcome, <span id="user-name"></span>!</h2>
+        <h3>Select a Task:</h3>
+        <button onclick="startTask('Install')">Install</button>
+        <button onclick="startTask('Manufacturing')">Manufacturing</button>
+        <button onclick="startTask('Sales')">Sales</button>
+
+        <div id="time-tracking" class="hidden">
+            <h4 id="task-name"></h4>
+            <p>Time: <span id="timer">00:00</span></p>
+            <button onclick="startBreak()">Start Break</button>
+            <button onclick="endBreak()">End Break</button>
+            <button onclick="endTask()">End Task</button>
+        </div>
+    </div>
+
+    <div id="summary" class="hidden">
+        <h2>Summary</h2>
+        <p>Total time worked: <span id="total-time">00:00</span></p>
+        <button onclick="viewAdminSummary()">View Admin Summary</button>
+    </div>
+
+    <div id="admin-summary" class="hidden">
+        <h2>Admin Summary</h2>
+        <ul id="user-summary-list"></ul>
+    </div>
+
+    <script>
+        let timer;
+        let taskStartTime;
+        let breakStartTime;
+        let breakTime = 0;
+        let totalTime = 0;
+        let currentUser = "";
+
+        // Login function
+        function login() {
+            const username = document.getElementById('username').value;
+            if (username) {
+                currentUser = username;
+                document.getElementById('user-name').textContent = username;
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('tasks').classList.remove('hidden');
+            } else {
+                alert("Please enter your name!");
+            }
+        }
+
+        // Start task and timer
+        function startTask(task) {
+            document.getElementById('task-name').textContent = task;
+            document.getElementById('time-tracking').classList.remove('hidden');
+            taskStartTime = Date.now();
+            startTimer();
+        }
+
+        // Start the timer
+        function startTimer() {
+            timer = setInterval(() => {
+                let elapsedTime = Date.now() - taskStartTime - breakTime;
+                document.getElementById('timer').textContent = formatTime(elapsedTime);
+            }, 1000);
+        }
+
+        // Format time (e.g., 02:03 for 2 minutes 3 seconds)
+        function formatTime(time) {
+            let minutes = Math.floor(time / 60000);
+            let seconds = Math.floor((time % 60000) / 1000);
+            return `${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        // Pad time (add a leading zero if single digit)
+        function pad(number) {
+            return number < 10 ? '0' + number : number;
+        }
+
+        // Start break (pause timer)
+        function startBreak() {
+            breakStartTime = Date.now();
+        }
+
+        // End break (resume timer)
+        function endBreak() {
+            breakTime += Date.now() - breakStartTime;
+            breakStartTime = 0;
+        }
+
+        // End task and save summary
+        function endTask() {
+            clearInterval(timer);
+            totalTime += Date.now() - taskStartTime - breakTime;
+            saveSummary();
+            document.getElementById('time-tracking').classList.add('hidden');
+            document.getElementById('summary').classList.remove('hidden');
+            document.getElementById('total-time').textContent = formatTime(totalTime);
+        }
+
+        // Save user summary to localStorage
+        function saveSummary() {
+            const userSummary = {
+                name: currentUser,
+                timeWorked: formatTime(totalTime)
+            };
+
+            let allSummaries = JSON.parse(localStorage.getItem('userSummaries')) || [];
+            allSummaries.push(userSummary);
+            localStorage.setItem('userSummaries', JSON.stringify(allSummaries));
+        }
+
+        // View Admin Summary (show all users' data)
+        function viewAdminSummary() {
+            document.getElementById('summary').classList.add('hidden');
+            document.getElementById('admin-summary').classList.remove('hidden');
+            const allSummaries = JSON.parse(localStorage.getItem('userSummaries')) || [];
+            const summaryList = document.getElementById('user-summary-list');
+            summaryList.innerHTML = "";
+
+            allSummaries.forEach((summary) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${summary.name}: ${summary.timeWorked}`;
+                summaryList.appendChild(listItem);
+            });
+        }
+    </script>
+</body>
+</html>
